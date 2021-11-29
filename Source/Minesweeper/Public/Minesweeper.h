@@ -18,6 +18,7 @@ public:
 	TSharedPtr<SEditableTextBox> WidthBox;
 	TSharedPtr<SEditableTextBox> BombBox;
 	TSharedPtr<SUniformGridPanel> MineGrid;
+	TSharedPtr<STextBlock> InfoBlock;
 
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
@@ -29,6 +30,8 @@ public:
 	FReply GenerateGrid();
 	
 private:
+
+	void Debug(FString Text);
 
 	void RegisterMenus();
 

@@ -86,7 +86,7 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 				+ SHorizontalBox::Slot().HAlign(HAlign_Center).Padding(5)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("minecount", "Mine count"))
+					.Text(LOCTEXT("mine_count", "Mine count"))
 				]
 				+ SHorizontalBox::Slot()
 				[
@@ -99,11 +99,15 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 					.OnClicked_Raw(this, &FMinesweeperModule::GenerateGrid)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("generategrid", "Generate grid"))
+						.Text(LOCTEXT("generate_grid", "Generate grid"))
 					]
 				]
 				/*, 
 				*/
+			]
+			+ SVerticalBox::Slot().HAlign(HAlign_Center).Padding(5).AutoHeight()
+			[
+				SAssignNew(InfoBlock, STextBlock)
 			]
 			+ SVerticalBox::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(5).FillHeight(1.0)
 			[
@@ -119,15 +123,59 @@ void FMinesweeperModule::PluginButtonClicked()
 
 FReply FMinesweeperModule::GenerateGrid()
 {
-	if (WidthBox.IsValid() && HeightBox.IsValid() && BombBox.IsValid() && MineGrid.IsValid())
+	if (WidthBox.IsValid() && HeightBox.IsValid() && BombBox.IsValid() && MineGrid.IsValid() && InfoBlock.IsValid())
 	{
-		FString debug = WidthBox->GetText().ToString() + " " + HeightBox->GetText().ToString() + " " + BombBox->GetText().ToString();
-		if (GEngine)
+		int32 Width = FCString::Atoi(*WidthBox->GetText().ToString());
+		int32 Height = FCString::Atoi(*HeightBox->GetText().ToString());
+		int32 BombCount = FCString::Atoi(*BombBox->GetText().ToString());
+		if (Width <= 0 || Height <= 0 || BombCount <= 0)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, debug);
+			InfoBlock->SetText(LOCTEXT("invalid_input", "The Width / Height / Mine Count is invalid !"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
+		}
+		else if (Width > 15 || Height > 15)
+		{
+			InfoBlock->SetText(LOCTEXT("invalid_size", "The Width or Height is greater than 15 !"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
+		}
+		else if (BombCount > (Height * Width))
+		{
+			InfoBlock->SetText(LOCTEXT("invalid_count", "The bombcount is greater than the size of the grid !"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
+		}
+		else
+		{
+			InfoBlock->SetText(LOCTEXT("start_game", "Click on a tile to start"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
+			MineGrid->ClearChildren();
+			for (int i = 0; i < Width; i++)
+			{
+				for (int j = 0; j < Height; j++)
+				{
+					auto Button = SNew(SButton);
+					Button->SetTag(FName(FString::FromInt(j) + "-" + FString::FromInt(i)));
+					Button->SetToolTipText(LOCTEXT("unveil_tile", "Click to unveil this tile"));
+					auto& Slot = MineGrid->AddSlot(j, i);
+					Slot.AttachWidget(Button);
+					
+				}
+			}
 		}
 	}
+	else
+	{
+		Debug("Pointers to slate widgets are invalid");
+	}
 	return FReply::Handled();
+}
+
+void FMinesweeperModule::Debug(FString Text)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Text);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Debug Minesweeper: <%s>"), *Text);
 }
 
 void FMinesweeperModule::RegisterMenus()
