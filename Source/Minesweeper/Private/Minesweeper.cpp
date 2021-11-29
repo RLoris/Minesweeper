@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// RLoris 2021
 
 #include "Minesweeper.h"
 #include "MinesweeperStyle.h"
@@ -110,7 +110,7 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 			[
 				SAssignNew(InfoBlock, STextBlock)
 			]
-			+ SVerticalBox::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(5).FillHeight(1.0)
+			+ SVerticalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(5).FillHeight(1.0)
 			[
 				SAssignNew(MineGrid, SUniformGridPanel)
 			]
@@ -139,7 +139,7 @@ FReply FMinesweeperModule::GenerateGrid()
 			InfoBlock->SetText(LOCTEXT("invalid_size", "The Width or Height is greater than 16 !"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
 		}
-		else if (BombCount > (RowCount * ColCount))
+		else if (BombCount > (RowCount * ColCount - 1))
 		{
 			InfoBlock->SetText(LOCTEXT("invalid_count", "The mine count is greater than the size of the grid !"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
@@ -158,11 +158,12 @@ FReply FMinesweeperModule::GenerateGrid()
 				{
 					auto Button = SNew(SButton);
 					Button->SetHAlign(HAlign_Center);
+					Button->SetVAlign(VAlign_Center);
 					Button->SetTag(FName(FString::FromInt(curRow) + "-" + FString::FromInt(curCol)));
 					Button->SetToolTipText(LOCTEXT("unveil_tile", "Click to unveil this tile"));
 					auto& Slot = MineGrid->AddSlot(curCol, curRow);
 					Slot.AttachWidget(Button);
-					Button->SetOnClicked(FOnClicked::CreateLambda([this, curCol, curRow, RowCount, ColCount, BombCount, Button]()
+					Button->SetOnClicked(FOnClicked::CreateLambda([this, curCol, curRow, RowCount, ColCount, BombCount]()
 						{
 							UnveilTile(curCol, curRow, RowCount, ColCount, BombCount);
 							return FReply::Handled();
@@ -220,7 +221,6 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 		// recursive escape
 		return;
 	}
-	// Debug("clicked: " + FString::FromInt(clickIdx));
 	Button.SetEnabled(false);
 	Button.SetToolTipText(FText::FromString(""));
 	TilesLeft--;
@@ -231,14 +231,13 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 	}
 	else
 	{
-		// Debug("Clicked on Row: " + FString::FromInt(curRow) + " Col: " + FString::FromInt(curCol) + " Index: " + FString::FromInt(clickIdx));
 		// unveil
 		if (BombLocations.IsValidIndex(clickIdx) && BombLocations[clickIdx])
 		{
 			// game over
 			InfoBlock->SetText(LOCTEXT("game_over", "BOOOOOOM ! Game over"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
-			Button.SetColorAndOpacity(FLinearColor::Red);
+			Button.SetBorderBackgroundColor(FLinearColor::Red);
 			Button.SetToolTipText(FText::FromString("BOMB"));
 			IsGameOver = true;
 		}
@@ -253,7 +252,6 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 				if ((curRow + r) >= 0 && (curCol + c) >= 0 && (curRow + r) < RowCount && (curCol + c) < ColCount)
 				{
 					int32 checkIdx = (curRow + r) * ColCount + (curCol + c);
-					// Debug("Checking tile " + FString::FromInt(checkIdx));
 					if (BombLocations[checkIdx])
 						mineCount++;
 				}
@@ -263,12 +261,13 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 		{
 			auto label = SNew(STextBlock);
 			auto font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
-			label->SetFont(FSlateFontInfo((UObject*)font, 15));
+			label->SetFont(FSlateFontInfo((UObject*)font, 20));
 			label->SetText(FText::FromString(FString::FromInt(mineCount)));
 			Button.SetContent(label);
 		}
 		else
 		{
+			Button.SetBorderBackgroundColor(FLinearColor::Blue);
 			// expand
 			for (int r = -1; r < 2; r++)
 				for (int c = -1; c < 2; c++)
