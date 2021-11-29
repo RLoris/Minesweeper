@@ -57,6 +57,7 @@ void FMinesweeperModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	UFont* font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
@@ -108,7 +109,7 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 			]
 			+ SVerticalBox::Slot().HAlign(HAlign_Center).Padding(5).AutoHeight()
 			[
-				SAssignNew(InfoBlock, STextBlock)
+				SAssignNew(InfoBlock, STextBlock).Font(FSlateFontInfo((UObject*) font, 32))
 			]
 			+ SVerticalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(5).FillHeight(1.0)
 			[
