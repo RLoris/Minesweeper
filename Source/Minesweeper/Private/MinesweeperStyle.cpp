@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// RLoris 2021
 
 #include "MinesweeperStyle.h"
 #include "Styling/SlateStyleRegistry.h"
