@@ -7,6 +7,8 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "ToolMenus.h"
 
 static const FName MinesweeperTabName("Minesweeper");
@@ -54,22 +56,58 @@ void FMinesweeperModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FMinesweeperModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("Minesweeper.cpp"))
-		);
-
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
-			// Put your tab content here!
-			SNew(SBox)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
 			[
-				SNew(STextBlock)
-				.Text(WidgetText)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().HAlign(HAlign_Center).Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("width", "Width"))
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SAssignNew(WidthBox, SEditableTextBox)
+					.Text(FText::FromString(TEXT("3")))
+				]
+				+ SHorizontalBox::Slot().HAlign(HAlign_Center).Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("height", "Height"))
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SAssignNew(HeightBox, SEditableTextBox)
+					.Text(FText::FromString(TEXT("3")))
+				]
+				+ SHorizontalBox::Slot().HAlign(HAlign_Center).Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("minecount", "Mine count"))
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SAssignNew(BombBox, SEditableTextBox)
+					.Text(FText::FromString(TEXT("3")))
+				]
+				+ SHorizontalBox::Slot().Padding(5, 0)
+				[
+					SNew(SButton).HAlign(HAlign_Center)
+					.OnClicked_Raw(this, &FMinesweeperModule::GenerateGrid)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("generategrid", "Generate grid"))
+					]
+				]
+				/*, 
+				*/
+			]
+			+ SVerticalBox::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(5).FillHeight(1.0)
+			[
+				SAssignNew(MineGrid, SUniformGridPanel)
 			]
 		];
 }
@@ -77,6 +115,19 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 void FMinesweeperModule::PluginButtonClicked()
 {
 	FGlobalTabmanager::Get()->TryInvokeTab(MinesweeperTabName);
+}
+
+FReply FMinesweeperModule::GenerateGrid()
+{
+	if (WidthBox.IsValid() && HeightBox.IsValid() && BombBox.IsValid() && MineGrid.IsValid())
+	{
+		FString debug = WidthBox->GetText().ToString() + " " + HeightBox->GetText().ToString() + " " + BombBox->GetText().ToString();
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, debug);
+		}
+	}
+	return FReply::Handled();
 }
 
 void FMinesweeperModule::RegisterMenus()

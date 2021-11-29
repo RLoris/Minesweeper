@@ -7,10 +7,17 @@
 
 class FToolBarBuilder;
 class FMenuBuilder;
+class SEditableTextBox;
+class SUniformGridPanel;
 
 class FMinesweeperModule : public IModuleInterface
 {
 public:
+	/* Widgets */
+	TSharedPtr<SEditableTextBox> HeightBox;
+	TSharedPtr<SEditableTextBox> WidthBox;
+	TSharedPtr<SEditableTextBox> BombBox;
+	TSharedPtr<SUniformGridPanel> MineGrid;
 
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
@@ -18,6 +25,8 @@ public:
 	
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
+
+	FReply GenerateGrid();
 	
 private:
 
