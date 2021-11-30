@@ -9,7 +9,6 @@ class FToolBarBuilder;
 class FMenuBuilder;
 class SEditableTextBox;
 class SUniformGridPanel;
-class SButton;
 
 class FMinesweeperModule : public IModuleInterface
 {
@@ -29,16 +28,15 @@ public:
 	void PluginButtonClicked();
 
 	FReply GenerateGrid();
-	void UnveilTile(int32 curCol, int32 curRow, int32 RowCount, int32 ColCount, int32 BombCount);
-	
 private:
 
 	void Debug(FString Text);
 	void InitializeGame(int32 Height, int32 Width, int32 BombCount, int32 InitIdx);
+	void UnveilTile(int32 curCol, int32 curRow, int32 RowCount, int32 ColCount, int32 BombCount);
 	TArray<bool> BombLocations;
-	bool IsGameInitialized = false;
+	bool bIsGameInitialized = false;
 	int32 TilesLeft = 0;
-	bool IsGameOver = false;
+	bool bIsGameOver = false;
 
 	void RegisterMenus();
 

@@ -57,7 +57,7 @@ void FMinesweeperModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	UFont* font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
+	UFont* Font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
@@ -104,12 +104,10 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 						.Text(LOCTEXT("generate_grid", "Generate grid"))
 					]
 				]
-				/*, 
-				*/
 			]
 			+ SVerticalBox::Slot().HAlign(HAlign_Center).Padding(5).AutoHeight()
 			[
-				SAssignNew(InfoBlock, STextBlock).Font(FSlateFontInfo((UObject*) font, 32))
+				SAssignNew(InfoBlock, STextBlock).Font(FSlateFontInfo((UObject*) Font, 28))
 			]
 			+ SVerticalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(5).FillHeight(1.0)
 			[
@@ -130,14 +128,24 @@ FReply FMinesweeperModule::GenerateGrid()
 		int32 ColCount = FCString::Atoi(*WidthBox->GetText().ToString());
 		int32 RowCount = FCString::Atoi(*HeightBox->GetText().ToString());
 		int32 BombCount = FCString::Atoi(*BombBox->GetText().ToString());
-		if (ColCount <= 0 || RowCount <= 0 || BombCount <= 0)
+		if (ColCount <= 0)
 		{
-			InfoBlock->SetText(LOCTEXT("invalid_input", "The Width / Height / Mine Count is invalid !"));
+			InfoBlock->SetText(LOCTEXT("invalid_width", "The width is invalid !"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
+		}
+		else if (RowCount <= 0)
+		{
+			InfoBlock->SetText(LOCTEXT("invalid_height", "The height is invalid !"));
+			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
+		}
+		else if (BombCount <= 0)
+		{
+			InfoBlock->SetText(LOCTEXT("invalid_mine", "The mine count is invalid !"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
 		}
 		else if (ColCount > 16 || RowCount > 16)
 		{
-			InfoBlock->SetText(LOCTEXT("invalid_size", "The Width or Height is greater than 16 !"));
+			InfoBlock->SetText(LOCTEXT("invalid_size", "The grid width or height is greater than 16 !"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
 		}
 		else if (BombCount > (RowCount * ColCount - 1))
@@ -151,26 +159,24 @@ FReply FMinesweeperModule::GenerateGrid()
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
 			MineGrid->ClearChildren();
 			TilesLeft = ColCount * RowCount;
-			IsGameInitialized = false;
-			IsGameOver = false;
-			for (int curRow = 0; curRow < RowCount; curRow++)
+			bIsGameInitialized = false;
+			bIsGameOver = false;
+			for (int32 CurRow = 0; CurRow < RowCount; CurRow++)
 			{
-				for (int curCol = 0; curCol < ColCount; curCol++)
+				for (int32 CurCol = 0; CurCol < ColCount; CurCol++)
 				{
-					auto Button = SNew(SButton);
+					TSharedRef<SButton> Button = SNew(SButton);
 					Button->SetHAlign(HAlign_Center);
 					Button->SetVAlign(VAlign_Center);
-					Button->SetTag(FName(FString::FromInt(curRow) + "-" + FString::FromInt(curCol)));
 					Button->SetToolTipText(LOCTEXT("unveil_tile", "Click to unveil this tile"));
-					auto& Slot = MineGrid->AddSlot(curCol, curRow);
+					SUniformGridPanel::FSlot& Slot = MineGrid->AddSlot(CurCol, CurRow);
 					Slot.AttachWidget(Button);
-					Button->SetOnClicked(FOnClicked::CreateLambda([this, curCol, curRow, RowCount, ColCount, BombCount]()
+					Button->SetOnClicked(FOnClicked::CreateLambda([this, CurCol, CurRow, RowCount, ColCount, BombCount]()
 						{
-							UnveilTile(curCol, curRow, RowCount, ColCount, BombCount);
+							UnveilTile(CurCol, CurRow, RowCount, ColCount, BombCount);
 							return FReply::Handled();
 						}
 					));
-					
 				}
 			}
 		}
@@ -188,15 +194,15 @@ void FMinesweeperModule::InitializeGame(int32 Height, int32 Width, int32 BombCou
 	BombLocations.Init(false, Height * Width);
 	while (BombCount)
 	{
-		int spawnIdx = FMath::RandRange(0, (Height * Width) - 1);
-		if (BombLocations[spawnIdx] == false && spawnIdx != InitIdx)
+		int BombIdx = FMath::RandRange(0, (Height * Width) - 1);
+		if (BombLocations[BombIdx] == false && BombIdx != InitIdx)
 		{
-			// not initial click
-			BombLocations[spawnIdx] = true;
+			// not initial click and empty
+			BombLocations[BombIdx] = true;
 			BombCount--;
 		}
 	}
-	IsGameInitialized = true;
+	bIsGameInitialized = true;
 }
 
 void FMinesweeperModule::Debug(FString Text)
@@ -210,12 +216,13 @@ void FMinesweeperModule::Debug(FString Text)
 
 void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, int32 ColCount, int32 BombCount)
 {
-	const int32 clickIdx = (curRow * ColCount) + curCol;
-	if (IsGameOver || clickIdx >= MineGrid->GetChildren()->Num())
+	const int32 ClickIdx = (curRow * ColCount) + curCol;
+	if (bIsGameOver || ClickIdx >= MineGrid->GetChildren()->Num())
 	{
 		return;
 	}
-	TSharedRef<SWidget> widget = MineGrid->GetChildren()->GetChildAt(clickIdx);
+	TSharedRef<SWidget> widget = MineGrid->GetChildren()->GetChildAt(ClickIdx);
+	// cast to SButton from SWidget
 	SButton& Button = static_cast<SButton&>(widget.Get());
 	if (!Button.IsEnabled())
 	{
@@ -225,51 +232,48 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 	Button.SetEnabled(false);
 	Button.SetToolTipText(FText::FromString(""));
 	TilesLeft--;
-	if (!IsGameInitialized)
+	if (!bIsGameInitialized)
 	{
 		// first click
-		InitializeGame(RowCount, ColCount, BombCount, clickIdx);
+		InitializeGame(RowCount, ColCount, BombCount, ClickIdx);
 	}
-	else
+	else if (BombLocations.IsValidIndex(ClickIdx) && BombLocations[ClickIdx])
 	{
-		// unveil
-		if (BombLocations.IsValidIndex(clickIdx) && BombLocations[clickIdx])
-		{
-			// game over
-			InfoBlock->SetText(LOCTEXT("game_over", "BOOOOOOM ! Game over"));
-			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
-			Button.SetBorderBackgroundColor(FLinearColor::Red);
-			Button.SetToolTipText(FText::FromString("BOMB"));
-			IsGameOver = true;
-		}
+		// game over
+		InfoBlock->SetText(LOCTEXT("game_over", "BOOOOOOM ! Game over"));
+		InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
+		Button.SetBorderBackgroundColor(FLinearColor::Red);
+		Button.SetToolTipText(FText::FromString("BOMB"));
+		bIsGameOver = true;
 	}
-	if (!IsGameOver)
+	// check adjacent tiles
+	if (!bIsGameOver)
 	{
-		// show mine count
-		int mineCount = 0;
+		// count adjacent mines
+		int AdjacentMineCount = 0;
 		for (int r = -1; r < 2; r++)
 			for (int c = -1; c < 2; c++)
 			{
 				if ((curRow + r) >= 0 && (curCol + c) >= 0 && (curRow + r) < RowCount && (curCol + c) < ColCount)
 				{
-					int32 checkIdx = (curRow + r) * ColCount + (curCol + c);
-					if (BombLocations[checkIdx])
-						mineCount++;
+					int32 AdjacentIdx = (curRow + r) * ColCount + (curCol + c);
+					if (BombLocations[AdjacentIdx])
+						AdjacentMineCount++;
 				}
 			}
-		// display label
-		if (mineCount > 0)
+		if (AdjacentMineCount > 0)
 		{
-			auto label = SNew(STextBlock);
-			auto font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
-			label->SetFont(FSlateFontInfo((UObject*)font, 20));
-			label->SetText(FText::FromString(FString::FromInt(mineCount)));
-			Button.SetContent(label);
+			// display mine count label
+			auto AdjacentMineLabel = SNew(STextBlock);
+			auto Font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto"), nullptr, LOAD_None, nullptr);
+			AdjacentMineLabel->SetFont(FSlateFontInfo((UObject*)Font, 20));
+			AdjacentMineLabel->SetText(FText::FromString(FString::FromInt(AdjacentMineCount)));
+			Button.SetContent(AdjacentMineLabel);
 		}
 		else
 		{
+			// expand zone recusively
 			Button.SetBorderBackgroundColor(FLinearColor::Blue);
-			// expand
 			for (int r = -1; r < 2; r++)
 				for (int c = -1; c < 2; c++)
 				{
@@ -284,7 +288,7 @@ void FMinesweeperModule::UnveilTile(int32 curCol, int32 curRow, int32 RowCount, 
 		{
 			InfoBlock->SetText(LOCTEXT("game_win", "It's a win ! Congratulations"));
 			InfoBlock->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
-			IsGameOver = true;
+			bIsGameOver = true;
 		}
 	}
 }
